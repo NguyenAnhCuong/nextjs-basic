@@ -18,6 +18,12 @@ async function bootstrap() {
   app.setBaseViewsDir(join(__dirname, '..', 'views')); //view=html
   app.setViewEngine('ejs');
 
+  app.enableCors({
+    origin: configService.get<string>('FRONTEND_URL') ?? '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    preflightContinue: false,
+  });
+
   await app.listen(configService.get<string>('PORT'));
 }
 bootstrap();
