@@ -1,11 +1,26 @@
-import { Injectable } from '@nestjs/common';
-import { CreateCompanyDto } from './dto/create-company.dto';
-import { UpdateCompanyDto } from './dto/update-company.dto';
+import { Injectable } from "@nestjs/common";
+import { CreateCompanyDto } from "./dto/create-company.dto";
+import { UpdateCompanyDto } from "./dto/update-company.dto";
+import { SoftDeleteModel } from "soft-delete-plugin-mongoose";
+import { Company, CompanyDocument } from "./schemas/company.schema";
+import { InjectModel } from "@nestjs/mongoose";
+import { IUser } from "src/users/user.interface";
 
 @Injectable()
 export class CompaniesService {
-  create(createCompanyDto: CreateCompanyDto) {
-    return 'This action adds a new company';
+  constructor(
+    @InjectModel(Company.name)
+    private CompanyModel: SoftDeleteModel<CompanyDocument>
+  ) {}
+
+  async create(createCompanyDto: CreateCompanyDto, user: IUser) {
+    return await this.CompanyModel.create({
+      ...createCompanyDto,
+      createdBy: {
+        _id: user._id,
+        email: user.email,
+      },
+    });
   }
 
   findAll() {
@@ -16,11 +31,14 @@ export class CompaniesService {
     return `This action returns a #${id} company`;
   }
 
-  update(id: number, updateCompanyDto: UpdateCompanyDto) {
-    return `This action updates a #${id} company`;
+  async update(id: string, updateCompanyDto: UpdateCompanyDto, user: IUser) {
+    return await this.CompanyModel.updateOne(
+      { _id: id },
+      { ...updateCompanyDto, createdBy: { _id: user._id, email: user.email } }
+    );
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} company`;
+  async remove(id: string) {
+    return await this.CompanyModel.deleteOne({ _id: id });
   }
 }
