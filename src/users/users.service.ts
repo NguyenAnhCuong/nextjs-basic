@@ -1,25 +1,44 @@
-import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { InjectModel } from '@nestjs/mongoose';
-import { User, UserDocument } from './schemas/user.schema';
-import mongoose, { Model } from 'mongoose';
-import { compareSync, genSaltSync, hashSync } from 'bcryptjs';
-import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
+import { BadRequestException, Injectable } from "@nestjs/common";
+import { CreateUserDto, RegisterUserDto } from "./dto/create-user.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
+import { InjectModel } from "@nestjs/mongoose";
+import { User as UserM, UserDocument } from "./schemas/user.schema";
+import mongoose, { Model } from "mongoose";
+import { compareSync, genSaltSync, hashSync } from "bcryptjs";
+import { SoftDeleteModel } from "soft-delete-plugin-mongoose";
+import { IUser } from "./user.interface";
+import { User } from "src/decorator/customize";
+import aqp from "api-query-params";
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectModel(User.name) private UserModel: SoftDeleteModel<UserDocument>,
+    @InjectModel(UserM.name) private UserModel: SoftDeleteModel<UserDocument>
   ) {}
-  async create(data: CreateUserDto) {
+  async create(data: CreateUserDto, @User() user: IUser) {
+    const { email, name, age, role, gender, address, company } = data;
     const hashPassword = await this.hashPassword(data.password);
-    const user = await this.UserModel.create({
-      email: data.email,
+
+    const isExist = await this.UserModel.findOne({ email: data.email });
+
+    if (isExist) {
+      throw new BadRequestException(`Email ${data.email} already exists`);
+    }
+    const newUser = await this.UserModel.create({
+      email,
       password: hashPassword,
-      name: data.name,
+      name,
+      age,
+      role,
+      gender,
+      address,
+      company,
+      createdBy: {
+        _id: user._id,
+        email: user.email,
+      },
     });
-    return user;
+    return newUser;
   }
 
   hashPassword = async (password: string) => {
@@ -43,34 +62,91 @@ export class UsersService {
   //   return user;
   // }
 
-  findAll() {
-    return `This action returns all users`;
+  async findAll(currentPage: number, limit: number, queryString: string) {
+    const { filter, population, sort } = aqp(queryString);
+    delete filter.page;
+    delete filter.limit;
+    let offset = (+currentPage - 1) * +limit;
+    let defaultLimit = +limit ? +limit : 10;
+
+    const totalItems = (await this.UserModel.find(filter)).length;
+    const totalPages = Math.ceil(totalItems / defaultLimit);
+
+    const result = await this.UserModel.find(filter)
+      .skip(offset)
+      .limit(defaultLimit)
+      .sort(sort as any)
+      .populate(population)
+      .select("-password")
+      .exec();
+
+    return {
+      meta: {
+        current: currentPage, //trang hiện tại
+        pageSize: limit, //số lượng bản ghi đã lấy
+        pages: totalPages, //tổng số trang với điều kiện query
+        total: totalItems, // tổng số phần tử (số bản ghi)
+      },
+      result, //kết quả query
+    };
   }
 
   findOne(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return 'Not found user';
+      return "Not found user";
     }
 
-    return this.UserModel.findById({ _id: id });
+    return this.UserModel.findById({ _id: id }).select("-password");
   }
 
   findOneByUsername(username: string) {
     return this.UserModel.findOne({ email: username });
   }
 
-  async update(updateUserDto: UpdateUserDto) {
+  async update(updateUserDto: UpdateUserDto, user: IUser) {
     return await this.UserModel.updateOne(
       { _id: updateUserDto._id },
       { ...updateUserDto },
+      {
+        updatedBy: {
+          _id: user._id,
+          email: user.email,
+        },
+      }
     );
   }
 
-  remove(id: string) {
+  async remove(id: string, user: IUser) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return 'Not found user';
+      return "Not found user";
     }
 
+    await this.UserModel.updateOne(
+      { _id: id },
+      {
+        deletedBy: {
+          _id: user._id,
+          email: user.email,
+        },
+      }
+    );
+
     return this.UserModel.softDelete({ _id: id });
+  }
+
+  async register(user: RegisterUserDto) {
+    const hashPassword = await this.hashPassword(user.password);
+
+    const isExist = await this.UserModel.findOne({ email: user.email });
+
+    if (isExist) {
+      throw new BadRequestException(`Email ${user.email} already exists`);
+    }
+    const newUser = await this.UserModel.create({
+      ...user,
+      password: hashPassword,
+      role: "USER",
+    });
+    return newUser;
   }
 }
