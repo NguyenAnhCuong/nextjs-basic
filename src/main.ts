@@ -23,9 +23,11 @@ async function bootstrap() {
 
   app.use(cookieParser());
   app.enableCors({
-    origin: configService.get<string>("FRONTEND_URL") ?? "*",
+    // origin: configService.get<string>("FRONTEND_URL") ?? "*",
+    origin: true,
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     preflightContinue: false,
+    credentials: true,
   });
 
   app.setGlobalPrefix("api");
