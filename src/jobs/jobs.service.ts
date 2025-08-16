@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { CreateJobDto } from "./dto/create-job.dto";
 import { UpdateJobDto } from "./dto/update-job.dto";
 import { User } from "src/decorator/customize";
@@ -22,7 +22,7 @@ export class JobsService {
     const checkEndDate = dayjs(endDate);
 
     if (checkEndDate.isBefore(checkStartDate)) {
-      throw new Error("End date must be after start date");
+      throw new BadRequestException("End date must be after start date");
     }
 
     return this.JobModel.create({
@@ -64,7 +64,7 @@ export class JobsService {
 
   async findOne(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return "Invalid ID";
+      throw new BadRequestException("Invalid id");
     }
     return this.JobModel.findById(id);
   }

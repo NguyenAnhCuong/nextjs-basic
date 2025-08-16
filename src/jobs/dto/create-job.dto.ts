@@ -18,6 +18,9 @@ class Company {
 
   @IsNotEmpty({ message: "Id is required" })
   _id: mongoose.Schema.Types.ObjectId;
+
+  @IsNotEmpty({ message: "Logo is required" })
+  logo: string;
 }
 
 export class CreateJobDto {
@@ -40,6 +43,9 @@ export class CreateJobDto {
 
   @IsNotEmpty({ message: "Description is required" })
   description?: string;
+
+  @IsNotEmpty({ message: "Location is required" })
+  location: string;
 
   @IsNotEmpty({ message: "Start date is required" })
   @Transform(({ value }) => new Date(value))

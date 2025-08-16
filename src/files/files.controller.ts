@@ -23,7 +23,7 @@ export class FilesController {
 
   @Public()
   @Post("upload")
-  @UseInterceptors(FileInterceptor("file"))
+  @UseInterceptors(FileInterceptor("fileUpload"))
   @ResponseMessage("Uploaded single file")
   uploadFile(
     @UploadedFile(

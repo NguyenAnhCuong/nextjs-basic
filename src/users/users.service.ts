@@ -93,7 +93,7 @@ export class UsersService {
 
   findOne(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return "Not found user";
+      throw new BadRequestException("Invalid id");
     }
 
     return this.UserModel.findById({ _id: id }).select("-password");
