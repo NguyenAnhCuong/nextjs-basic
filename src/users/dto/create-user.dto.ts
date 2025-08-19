@@ -1,6 +1,7 @@
 import { Type } from "class-transformer";
 import {
   IsEmail,
+  IsMongoId,
   IsNotEmpty,
   IsNotEmptyObject,
   IsObject,
@@ -31,7 +32,8 @@ export class CreateUserDto {
   age: number;
 
   @IsNotEmpty({ message: "Role is required" })
-  role: string;
+  @IsMongoId({ message: "role must is mongo id" })
+  role: mongoose.Schema.Types.ObjectId;
 
   @IsNotEmpty({ message: "Address is required" })
   address: string;

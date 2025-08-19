@@ -91,16 +91,21 @@ export class UsersService {
     };
   }
 
-  findOne(id: string) {
+  async findOne(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new BadRequestException("Invalid id");
     }
 
-    return this.UserModel.findById({ _id: id }).select("-password");
+    return await this.UserModel.findById({ _id: id })
+      .select("-password")
+      .populate({ path: "role", select: { name: 1, _id: 1 } });
   }
 
-  findOneByUsername(username: string) {
-    return this.UserModel.findOne({ email: username });
+  async findOneByUsername(username: string) {
+    return (await this.UserModel.findOne({ email: username })).populate({
+      path: "role",
+      select: { name: 1, permissions: 1 },
+    });
   }
 
   async update(updateUserDto: UpdateUserDto, user: IUser) {
@@ -119,6 +124,12 @@ export class UsersService {
   async remove(id: string, user: IUser) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return "Not found user";
+    }
+
+    const foundUser = await this.UserModel.findById(id);
+
+    if (foundUser.email === "admin@gmail.com") {
+      throw new BadRequestException("Cannt delete admin account");
     }
 
     await this.UserModel.updateOne(

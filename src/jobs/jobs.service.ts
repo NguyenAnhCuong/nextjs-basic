@@ -3,7 +3,7 @@ import { CreateJobDto } from "./dto/create-job.dto";
 import { UpdateJobDto } from "./dto/update-job.dto";
 import { User } from "src/decorator/customize";
 import { IUser } from "src/users/user.interface";
-import { Job, JobDocument } from "./schema/job.schema";
+import { Job, JobDocument } from "./schemas/job.schema";
 import { SoftDeleteModel } from "soft-delete-plugin-mongoose";
 import { InjectModel } from "@nestjs/mongoose";
 import dayjs from "dayjs";
