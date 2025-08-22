@@ -1,43 +1,34 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { CreateRoleDto } from "./dto/create-role.dto";
-import { UpdateRoleDto } from "./dto/update-role.dto";
-import { InjectModel } from "@nestjs/mongoose";
-import { Role, RoleDocument } from "./schemas/role.schema";
-import { SoftDeleteModel } from "soft-delete-plugin-mongoose";
+import { CreateSubscriberDto } from "./dto/create-subscriber.dto";
+import { UpdateSubscriberDto } from "./dto/update-subscriber.dto";
 import { IUser } from "src/users/user.interface";
+import { InjectModel } from "@nestjs/mongoose";
+import { Subscriber, SubscriberDocument } from "./schemas/subscriber.schema";
+import { SoftDeleteModel } from "soft-delete-plugin-mongoose";
 import aqp from "api-query-params";
 import mongoose from "mongoose";
-import { ADMIN_ROLE } from "src/databases/sample";
 
 @Injectable()
-export class RolesService {
+export class SubscribersService {
   constructor(
-    @InjectModel(Role.name)
-    private RoleModel: SoftDeleteModel<RoleDocument>
+    @InjectModel(Subscriber.name)
+    private SubscriberModel: SoftDeleteModel<SubscriberDocument>
   ) {}
-  async create(createRoleDto: CreateRoleDto, user: IUser) {
-    const { name, description, isActive, permissions } = createRoleDto;
-
-    const isExist = await this.RoleModel.findOne({ name });
+  async create(createSubscriberDto: CreateSubscriberDto, user: IUser) {
+    const isExist = await this.SubscriberModel.findOne({
+      email: createSubscriberDto.email,
+    });
     if (isExist) {
-      throw new BadRequestException(`Role with name=${name} is already exist`);
+      throw new BadRequestException("Subscriber already exists");
     }
-
-    const newRole = await this.RoleModel.create({
-      name,
-      description,
-      isActive,
-      permissions,
+    const createdSubscriber = await this.SubscriberModel.create({
+      ...createSubscriberDto,
       createdBy: {
         _id: user._id,
         email: user.email,
       },
     });
-
-    return {
-      id: newRole?._id,
-      createAt: newRole?.createdAt,
-    };
+    return createdSubscriber;
   }
 
   async findAll(currentPage: number, limit: number, queryString: string) {
@@ -47,10 +38,10 @@ export class RolesService {
     let offset = (+currentPage - 1) * +limit;
     let defaultLimit = +limit ? +limit : 10;
 
-    const totalItems = (await this.RoleModel.find(filter)).length;
+    const totalItems = (await this.SubscriberModel.find(filter)).length;
     const totalPages = Math.ceil(totalItems / defaultLimit);
 
-    const result = await this.RoleModel.find(filter)
+    const result = await this.SubscriberModel.find(filter)
       .skip(offset)
       .limit(defaultLimit)
       .sort(sort as any)
@@ -72,23 +63,23 @@ export class RolesService {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new BadRequestException("Invalid id");
     }
-    return (await this.RoleModel.findById(id)).populate({
-      path: "permissions",
-      select: { _id: 1, apiPath: 1, name: 1, method: 1, module: 1 },
-    });
+    return await this.SubscriberModel.findById({ _id: id });
   }
 
-  async update(id: string, updateRoleDto: UpdateRoleDto, user: IUser) {
+  async update(
+    id: string,
+    updateSubscriberDto: UpdateSubscriberDto,
+    user: IUser
+  ) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new BadRequestException("Invalid id");
     }
-
-    const updated = await this.RoleModel.updateOne(
+    const updated = await this.SubscriberModel.updateOne(
       {
         _id: id,
       },
       {
-        ...updateRoleDto,
+        ...updateSubscriberDto,
         updatedBy: {
           _id: user._id,
           email: user.email,
@@ -99,11 +90,10 @@ export class RolesService {
   }
 
   async remove(id: string, user: IUser) {
-    const foundRole = await this.RoleModel.findById(id);
-    if (foundRole.name === ADMIN_ROLE) {
-      throw new BadRequestException("Cannt delete role admin");
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new BadRequestException("Invalid id");
     }
-    await this.RoleModel.updateOne(
+    await this.SubscriberModel.updateOne(
       {
         _id: id,
       },
@@ -114,8 +104,6 @@ export class RolesService {
         },
       }
     );
-    return this.RoleModel.softDelete({
-      _id: id,
-    });
+    return await this.SubscriberModel.softDelete({ _id: id });
   }
 }

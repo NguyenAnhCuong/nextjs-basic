@@ -89,7 +89,7 @@ export class PermissionsService {
         _id: id,
       },
       {
-        ...UpdatePermissionDto,
+        ...updatePermissionDto,
         updatedBy: {
           _id: user._id,
           email: user.email,

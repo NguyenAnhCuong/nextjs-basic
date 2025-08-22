@@ -9,11 +9,14 @@ import { SoftDeleteModel } from "soft-delete-plugin-mongoose";
 import { IUser } from "./user.interface";
 import { User } from "src/decorator/customize";
 import aqp from "api-query-params";
+import { Role, RoleDocument } from "src/roles/schemas/role.schema";
+import { USER_ROLE } from "src/databases/sample";
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectModel(UserM.name) private UserModel: SoftDeleteModel<UserDocument>
+    @InjectModel(UserM.name) private UserModel: SoftDeleteModel<UserDocument>,
+    @InjectModel(Role.name) private RoleModel: SoftDeleteModel<RoleDocument>
   ) {}
   async create(data: CreateUserDto, @User() user: IUser) {
     const { email, name, age, role, gender, address, company } = data;
@@ -104,7 +107,7 @@ export class UsersService {
   async findOneByUsername(username: string) {
     return (await this.UserModel.findOne({ email: username })).populate({
       path: "role",
-      select: { name: 1, permissions: 1 },
+      select: { name: 1 },
     });
   }
 
@@ -128,7 +131,7 @@ export class UsersService {
 
     const foundUser = await this.UserModel.findById(id);
 
-    if (foundUser.email === "admin@gmail.com") {
+    if (foundUser && foundUser.email === "admin@gmail.com") {
       throw new BadRequestException("Cannt delete admin account");
     }
 
@@ -153,10 +156,12 @@ export class UsersService {
     if (isExist) {
       throw new BadRequestException(`Email ${user.email} already exists`);
     }
+    const role = await this.RoleModel.findOne({ name: USER_ROLE });
+
     const newUser = await this.UserModel.create({
       ...user,
       password: hashPassword,
-      role: "USER",
+      role: role?._id,
     });
     return newUser;
   }
@@ -166,6 +171,9 @@ export class UsersService {
   };
 
   findUserByToken = async (refreshToken: string) => {
-    return await this.UserModel.findOne({ refreshToken });
+    return (await this.UserModel.findOne({ refreshToken })).populate({
+      path: "role",
+      select: { name: 1 },
+    });
   };
 }
