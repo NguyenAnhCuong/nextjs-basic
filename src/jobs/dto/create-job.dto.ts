@@ -30,7 +30,7 @@ export class CreateJobDto {
   @IsNotEmpty({ message: "Skill is required" })
   @IsString({ each: true, message: "Skill must be a string" })
   @IsArray({ message: "Skill must be an array" })
-  skill: string[];
+  skills: string[];
 
   @IsNotEmpty({ message: "Salary is required" })
   salary: number;
