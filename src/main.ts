@@ -16,7 +16,11 @@ async function bootstrap() {
   app.useGlobalGuards(new JwtAuthGuard(reflector));
   app.useGlobalInterceptors(new TransformInterceptor(reflector));
 
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+    })
+  );
   app.useStaticAssets(join(__dirname, "..", "public")); //js,css
   app.setBaseViewsDir(join(__dirname, "..", "views")); //view=html
   app.setViewEngine("ejs");

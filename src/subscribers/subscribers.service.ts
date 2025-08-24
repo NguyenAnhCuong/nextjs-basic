@@ -31,6 +31,13 @@ export class SubscribersService {
     return createdSubscriber;
   }
 
+  async getUserSkills(user: IUser) {
+    return await this.SubscriberModel.find(
+      { email: user.email },
+      { skills: 1 }
+    );
+  }
+
   async findAll(currentPage: number, limit: number, queryString: string) {
     const { filter, population, sort } = aqp(queryString);
     delete filter.current;
@@ -66,17 +73,10 @@ export class SubscribersService {
     return await this.SubscriberModel.findById({ _id: id });
   }
 
-  async update(
-    id: string,
-    updateSubscriberDto: UpdateSubscriberDto,
-    user: IUser
-  ) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new BadRequestException("Invalid id");
-    }
+  async update(updateSubscriberDto: UpdateSubscriberDto, user: IUser) {
     const updated = await this.SubscriberModel.updateOne(
       {
-        _id: id,
+        email: updateSubscriberDto.email,
       },
       {
         ...updateSubscriberDto,
@@ -84,7 +84,8 @@ export class SubscribersService {
           _id: user._id,
           email: user.email,
         },
-      }
+      },
+      { upsert: true }
     );
     return updated;
   }
