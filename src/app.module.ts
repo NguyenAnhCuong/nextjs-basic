@@ -18,10 +18,15 @@ import { DatabasesModule } from "./databases/databases.module";
 import { SubscribersModule } from "./subscribers/subscribers.module";
 import { MailModule } from "./mail/mail.module";
 import { ScheduleModule } from "@nestjs/schedule";
+import { ThrottlerModule } from "@nestjs/throttler";
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+    ThrottlerModule.forRoot({
+      limit: 3,
+      ttl: 60,
+    }),
     UsersModule,
     ConfigModule.forRoot({
       isGlobal: true,

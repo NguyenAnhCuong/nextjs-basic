@@ -10,11 +10,14 @@ import {
 import { AuthService } from "./auth.service";
 import { LocalAuthGuard } from "./local-auth.guard";
 import { Public, ResponseMessage, User } from "src/decorator/customize";
-import { RegisterUserDto } from "src/users/dto/create-user.dto";
+import { RegisterUserDto, UserLoginDto } from "src/users/dto/create-user.dto";
 import { Response, Request } from "express";
 import { IUser } from "src/users/user.interface";
 import { RolesService } from "src/roles/roles.service";
+import { ThrottlerGuard } from "@nestjs/throttler";
+import { ApiBody, ApiTags } from "@nestjs/swagger";
 
+@ApiTags("auth")
 @Controller("auth")
 export class AuthController {
   constructor(
@@ -23,8 +26,10 @@ export class AuthController {
   ) {}
 
   @Public()
+  @UseGuards(ThrottlerGuard)
   @UseGuards(LocalAuthGuard)
   @Post("/login")
+  @ApiBody({ type: UserLoginDto })
   @ResponseMessage("Login user")
   handleLogin(@Req() req, @Res({ passthrough: true }) res: Response) {
     return this.authService.login(req.user, res);
